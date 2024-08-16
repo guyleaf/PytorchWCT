@@ -1,0 +1,12 @@
+name: wct
+channels:
+  - pytorch
+  - nvidia
+  - anaconda
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pytorch=1.13.1
+  - torchvision=0.14.1
+  - pytorch-cuda=11.7
