@@ -93,6 +93,12 @@ def parse_args():
         help="hyperparameter to blend wct feature and content feature",
     )
     parser.add_argument(
+        "--single-level",
+        default=False,
+        action=argparse.BooleanOptionalAction,
+        help="Apply single-level stylization instead of multi-level",
+    )
+    parser.add_argument(
         "--transfer-mode",
         type=TransferMode,
         choices=list(TransferMode),
@@ -115,8 +121,12 @@ def parse_args():
 
 @torch.inference_mode()
 def transfer_style(
-    wct: WCT, content_img: torch.Tensor, style_img: torch.Tensor, alpha: float
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    wct: WCT,
+    content_img: torch.Tensor,
+    style_img: torch.Tensor,
+    alpha: float,
+    single_level: bool = False,
+) -> torch.Tensor:
     # --WCT on conv5_1
     # --------------------------------------------------------------------------
     # --Note that since conv5 feature is hard to invert,
@@ -131,9 +141,12 @@ def transfer_style(
     csF5 = wct.transform(cF5, sF5, alpha)
     im5 = wct.d5(csF5)
 
+    if single_level:
+        return im5
+
     # --WCT on conv4_1
     sF4 = wct.e4(style_img)
-    cF4 = wct.e4(content_img)
+    cF4 = wct.e4(im5)
     sF4 = sF4.squeeze(0)
     cF4 = cF4.squeeze(0)
     csF4 = wct.transform(cF4, sF4, alpha)
@@ -162,7 +175,7 @@ def transfer_style(
     cF1 = cF1.squeeze(0)
     csF1 = wct.transform(cF1, sF1, alpha)
     im1 = wct.d1(csF1)
-    return im1, im2, im3, im4, im5
+    return im1
 
 
 if __name__ == "__main__":
@@ -202,7 +215,9 @@ if __name__ == "__main__":
         start_time = time.time()
 
         # WCT Style Transfer
-        imgs = transfer_style(wct, content_img, style_img, args.alpha)
+        img = transfer_style(
+            wct, content_img, style_img, args.alpha, single_level=args.single_level
+        )
 
         end_time = time.time()
         print("Elapsed time is: %f" % (end_time - start_time))
@@ -210,7 +225,7 @@ if __name__ == "__main__":
         # save_image has this wired design to pad images with 4 pixels at default.
         out_file: Path = args.out_dir / imname.with_suffix(".png")
         out_file.parent.mkdir(parents=True, exist_ok=True)
-        save_image(imgs[0], out_file)
+        save_image(img, out_file)
 
         avgTime += end_time - start_time
 
