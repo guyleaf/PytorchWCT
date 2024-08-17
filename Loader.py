@@ -105,21 +105,29 @@ class Dataset(data.Dataset):
         content_img = default_loader(content_path)
         style_img = default_loader(style_path)
 
-        # resize
+        # resize the longest edge
         if self.inference_size != 0:
             w, h = content_img.size
             if w > h:
-                if w != self.inference_size:
+                if w > self.inference_size:
                     neww = self.inference_size
                     newh = int(h * neww / w)
-                    content_img = content_img.resize((neww, newh))
-                    style_img = style_img.resize((neww, newh))
+                    content_img = content_img.resize(
+                        (neww, newh), resample=Image.Resampling.LANCZOS
+                    )
+                    style_img = style_img.resize(
+                        (neww, newh), resample=Image.Resampling.LANCZOS
+                    )
             else:
-                if h != self.inference_size:
+                if h > self.inference_size:
                     newh = self.inference_size
                     neww = int(w * newh / h)
-                    content_img = content_img.resize((neww, newh))
-                    style_img = style_img.resize((neww, newh))
+                    content_img = content_img.resize(
+                        (neww, newh), resample=Image.Resampling.LANCZOS
+                    )
+                    style_img = style_img.resize(
+                        (neww, newh), resample=Image.Resampling.LANCZOS
+                    )
 
         # Preprocess Images
         content_img = F.to_tensor(content_img)
