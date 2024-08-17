@@ -66,11 +66,16 @@ class WCT(nn.Module):
         c_mean = c_mean.unsqueeze(1).expand_as(cF)
         cF = cF - c_mean
 
+        # issue: https://github.com/sunshineatnoon/PytorchWCT/issues/1#issuecomment-340604600
         content_conv = (
             torch.mm(cF, cF.t()).div(cF_size[1] - 1)
             + torch.eye(cF_size[0], device=cF.device).double()
         )
-        c_u, c_e, c_v = torch.svd(content_conv, some=False)
+        # content_conv = torch.mm(cF, cF.t()).div(cF_size[1] - 1)
+
+        # torch.svd() is deprecated in favor of torch.linalg.svd() and will be removed in a future PyTorch release.
+        c_u, c_e, c_v = torch.linalg.svd(content_conv, full_matrices=True)
+        c_v = c_v.mH
 
         k_c = cF_size[0]
         for i in range(cF_size[0]):
@@ -83,7 +88,9 @@ class WCT(nn.Module):
         s_mean = torch.mean(sF, 1)
         sF = sF - s_mean.unsqueeze(1).expand_as(sF)
         style_conv = torch.mm(sF, sF.t()).div(sF_size[1] - 1)
-        s_u, s_e, s_v = torch.svd(style_conv, some=False)
+        # torch.svd() is deprecated in favor of torch.linalg.svd() and will be removed in a future PyTorch release.
+        s_u, s_e, s_v = torch.linalg.svd(style_conv, full_matrices=True)
+        s_v = s_v.mH
 
         k_s = sF_size[0]
         for i in range(sF_size[0]):
